@@ -254,6 +254,15 @@ class CreateProcedureStatementSegment(BaseSegment):
         Ref("GoStatementSegment", optional=True),
     )
 
+@tsql_dialect.segment(replace=True)
+class StatementSegment(ansi_dialect.get_segment("StatementSegment")):  # type: ignore
+    """Overriding StatementSegment to allow for additional segment parsing."""
+
+    parse_grammar = ansi_dialect.get_segment("StatementSegment").parse_grammar.copy(
+        insert=[
+            Ref("CreateProcedureStatementSegment")
+        ],
+    )
 
 @tsql_dialect.segment()
 class ProcedureDefinitionGrammar(BaseSegment):
