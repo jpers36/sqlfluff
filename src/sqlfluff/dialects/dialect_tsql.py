@@ -64,6 +64,16 @@ tsql_dialect.replace(
         ),
         bracket_type="square",
     ),
+    NakedIdentifierSegment=SegmentGenerator(
+        # Generate the anti template from the set of reserved keywords
+        lambda dialect: RegexParser(
+            r"[#A-Z0-9_]*[A-Z][A-Z0-9_]*",
+            CodeSegment,
+            name="naked_identifier",
+            type="identifier",
+            anti_template=r"^(" + r"|".join(dialect.sets("reserved_keywords")) + r")$",
+        )
+    ),
     # QuotedIdentifierSegment=NamedParser(
     #     BracketedSegment(
     #         CodeSegment,        
@@ -75,11 +85,27 @@ tsql_dialect.replace(
     # )
 )
 
+tsql_dialect.patch_lexer_matchers(
+    [
+        RegexLexer(
+            "inline_comment",
+            r"(--)[^\n]*",
+            CommentSegment,
+            segment_kwargs={"trim_start": ("--")},
+        ),
+    ]
+)
+
 tsql_dialect.insert_lexer_matchers(
     [
         RegexLexer(
             "atsign",
             r"[@][a-zA-Z0-9_]+",
+            CodeSegment,
+        ),
+        RegexLexer(
+            "hash",
+            r"[#][a-zA-Z0-9_]+",
             CodeSegment,
         ),
     ],
@@ -254,13 +280,33 @@ class CreateProcedureStatementSegment(BaseSegment):
         Ref("GoStatementSegment", optional=True),
     )
 
+@tsql_dialect.segment()
+class IfExpressionStatement(BaseSegment):
+    """IF-ELSE statement.
+
+    https://docs.microsoft.com/en-us/sql/t-sql/language-elements/if-else-transact-sql?view=sql-server-ver15
+    """
+
+    type = "if_else_statement"
+
+    match_grammar = AnyNumberOf(
+        Sequence(
+            "IF",
+            Ref("ExpressionSegment"),
+            Ref("StatementSegment"),
+        ),
+        Sequence("ELSE", Ref("StatementSegment"), optional=True),
+    )
+
+
 @tsql_dialect.segment(replace=True)
 class StatementSegment(ansi_dialect.get_segment("StatementSegment")):  # type: ignore
     """Overriding StatementSegment to allow for additional segment parsing."""
 
     parse_grammar = ansi_dialect.get_segment("StatementSegment").parse_grammar.copy(
         insert=[
-            Ref("CreateProcedureStatementSegment")
+            Ref("CreateProcedureStatementSegment"),
+            Ref("IfExpressionStatement"),
         ],
     )
 
