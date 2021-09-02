@@ -16,13 +16,14 @@ from sqlfluff.core.parser import (
     OneOf,
    
     Bracketed,
-   
+    AnyNumberOf,
     Ref,
-    
+    SegmentGenerator,
     Anything,
     
     RegexLexer,
     CodeSegment,
+    CommentSegment,
    
     RegexParser,
     
