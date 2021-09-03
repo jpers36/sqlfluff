@@ -189,3 +189,13 @@ RESERVED_KEYWORDS = [
     "EXIT",
     "PROC"
 ]
+
+UNRESERVED_KEYWORDS = [
+    "MODEL", # https://docs.microsoft.com/en-us/sql/t-sql/queries/predict-transact-sql?view=sql-server-ver15
+    "PARTITION",
+    "PREDICT", # https://docs.microsoft.com/en-us/sql/t-sql/queries/predict-transact-sql?view=sql-server-ver15
+    "ROLE",
+    "SWITCH",
+    "TRUNCATE_TARGET",
+    "TYPE"
+]

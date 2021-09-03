@@ -19,6 +19,7 @@ env
 venv
 .venv
 .python-version
+.vs/
 
 # Ignore coverage reports
 .coverage
