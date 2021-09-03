@@ -187,7 +187,7 @@ RESERVED_KEYWORDS = [
     "PRINT",
     "WRITETEXT",
     "EXIT",
-    "PROC"
+    "PROC",
 ]
 
 UNRESERVED_KEYWORDS = [
