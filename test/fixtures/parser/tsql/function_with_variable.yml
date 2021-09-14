@@ -1,3 +1,9 @@
+# YML test files are auto-generated from SQL files and should not be edited by
+# hand. To help enforce this, the "hash" field in the file must match a hash
+# computed by SQLFluff when running the tests. Please run
+# `python test/generate_parse_fixture_yml.py`  to generate them after adding or
+# altering SQL files.
+_hash: d4f268aa332b57217684bae77a6bc2c50b64a318f591b78124a5bd47c79c55f5
 file:
   statement:
     create_function_statement:
@@ -5,31 +11,26 @@ file:
     - binary_operator: OR
     - keyword: ALTER
     - keyword: FUNCTION
-    - schema_name:
-        start_square_bracket: '['
-        identifier: dbo
-        end_square_bracket: ']'
-        dot: .
-    - object_name:
-        start_square_bracket: '['
-        identifier: CONVERT_ISO_WEEK_TO_UNIX
-        end_square_bracket: ']'
+    - object_reference:
+      - identifier: '[dbo]'
+      - dot: .
+      - identifier: '[CONVERT_ISO_WEEK_TO_UNIX]'
     - base:
         bracketed:
         - start_bracket: (
         - parameter: '@year'
         - data_type:
-            data_type_identifier: INT
+            identifier: INT
         - comma: ','
         - parameter: '@week'
         - data_type:
-            data_type_identifier: INT
+            identifier: INT
         - end_bracket: )
     - keyword: RETURNS
     - data_type:
-        data_type_identifier: BIGINT
-    - keyword: AS
+        identifier: BIGINT
     - function_statement:
+      - keyword: AS
       - raw: BEGIN
       - raw: DECLARE
       - raw: '@result'
@@ -45,4 +46,3 @@ file:
       - raw: +
       - raw: '@week'
       - raw: END
-      - raw: GO

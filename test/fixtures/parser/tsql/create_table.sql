@@ -1,7 +1,5 @@
-CREATE TABLE dbo.ECDC (
-    [EmployeeID] [int] PRIMARY KEY CLUSTERED,
-    [COUNTRY] [varchar](100) NULL,
-	[COUNTRY_CODE] [varchar](2) NOT NULL
-
-);
-
+CREATE TABLE [dbo].[EC DC] (
+    [Column B] [varchar](100),
+    [ColumnC] varchar(100),
+    [ColumnDecimal] decimal(10,3)
+)

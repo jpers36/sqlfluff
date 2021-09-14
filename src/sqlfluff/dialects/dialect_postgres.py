@@ -13,9 +13,11 @@ from sqlfluff.core.parser import (
     CodeSegment,
     NamedParser,
     SymbolSegment,
+    StartsWith,
 )
 
 from sqlfluff.core.dialects import load_raw_dialect
+from sqlfluff.dialects.postgres_keywords import postgres_keywords, get_keywords
 
 ansi_dialect = load_raw_dialect("ansi")
 
@@ -33,46 +35,22 @@ postgres_dialect.insert_lexer_matchers(
     before="not_equal",
 )
 
-# https://www.postgresql.org/docs/current/sql-keywords-appendix.html
-# SPACE has special status in some SQL dialects, but not Postgres.
-postgres_dialect.sets("unreserved_keywords").remove("SPACE")
-# Reserve WITHIN (required for the WithinGroupClauseSegment)
-postgres_dialect.sets("unreserved_keywords").remove("WITHIN")
-postgres_dialect.sets("unreserved_keywords").update(
-    [
-        "WITHIN",
-        "ANALYZE",
-        "VERBOSE",
-        "COSTS",
-        "BUFFERS",
-        "FORMAT",
-        "XML",
-        "SERVER",
-        "WRAPPER",
-    ]
+postgres_dialect.sets("reserved_keywords").update(
+    get_keywords(postgres_keywords, "reserved")
 )
-postgres_dialect.sets("reserved_keywords").update(["WITHIN", "VARIADIC", "WITH"])
+postgres_dialect.sets("unreserved_keywords").update(
+    get_keywords(postgres_keywords, "non-reserved")
+)
+postgres_dialect.sets("reserved_keywords").difference_update(
+    get_keywords(postgres_keywords, "not-keyword")
+)
+
+postgres_dialect.sets("unreserved_keywords").difference_update(
+    get_keywords(postgres_keywords, "not-keyword")
+)
+
 # Add the EPOCH datetime unit
 postgres_dialect.sets("datetime_units").update(["EPOCH"])
-
-postgres_dialect.sets("unreserved_keywords").update(
-    [
-        "COST",
-        "LEAKPROOF",
-        "PARALLEL",
-        "SUPPORT",
-        "SAFE",
-        "UNSAFE",
-        "RESTRICTED",
-        "REPLICA",
-        "ATTACH",
-        "DETACH",
-        "LOGGED",
-        "UNLOGGED",
-        "MODULUS",
-        "REMAINDER",
-    ]
-)
 
 postgres_dialect.add(
     JsonOperatorSegment=NamedParser(
@@ -108,7 +86,7 @@ postgres_dialect.replace(
             Sequence(Ref("ParameterNameSegment"), Ref("DatatypeSegment")),
         ),
         Sequence(
-            OneOf("DEFAULT", Ref("EqualsSegment")), Ref("LiteralGrammer"), optional=True
+            OneOf("DEFAULT", Ref("EqualsSegment")), Ref("LiteralGrammar"), optional=True
         ),
     ),
 )
@@ -359,6 +337,161 @@ class ExplainOptionSegment(BaseSegment):
 
 
 @postgres_dialect.segment(replace=True)
+class CreateTableStatementSegment(BaseSegment):
+    """A `CREATE TABLE` statement.
+
+    As specified in https://www.postgresql.org/docs/13/sql-createtable.html
+    """
+
+    type = "create_table_statement"
+
+    match_grammar = Sequence(
+        "CREATE",
+        OneOf(
+            Sequence(
+                OneOf("GLOBAL", "LOCAL", optional=True),
+                Ref("TemporaryGrammar", optional=True),
+            ),
+            "UNLOGGED",
+            optional=True,
+        ),
+        "TABLE",
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("TableReferenceSegment"),
+        OneOf(
+            # Columns and comment syntax:
+            Sequence(
+                Bracketed(
+                    Delimited(
+                        OneOf(
+                            Sequence(
+                                Ref("ColumnReferenceSegment"),
+                                Ref("DatatypeSegment"),
+                                Sequence(
+                                    "COLLATE",
+                                    Ref("QuotedLiteralSegment"),
+                                    optional=True,
+                                ),
+                                AnyNumberOf(
+                                    Ref("ColumnConstraintSegment", optional=True)
+                                ),
+                            ),
+                            Ref("TableConstraintSegment"),
+                            Sequence(
+                                "LIKE",
+                                Ref("TableReferenceSegment"),
+                                AnyNumberOf(Ref("LikeOptionSegment"), optional=True),
+                            ),
+                        ),
+                    )
+                ),
+                Sequence(
+                    "INHERITS",
+                    Bracketed(
+                        Delimited(
+                            Ref("TableReferenceSegment"), delimiter=Ref("CommaSegment")
+                        )
+                    ),
+                    optional=True,
+                ),
+            ),
+            # Create OF syntax:
+            Sequence(
+                "OF",
+                Ref("ParameterNameSegment"),
+                Bracketed(
+                    Delimited(
+                        Sequence(
+                            Ref("ColumnReferenceSegment"),
+                            Sequence("WITH", "OPTIONS", optional=True),
+                            AnyNumberOf(Ref("ColumnConstraintSegment")),
+                        ),
+                        Ref("TableConstraintSegment"),
+                        delimiter=Ref("CommaSegment"),
+                    ),
+                    optional=True,
+                ),
+            ),
+            # Create PARTITION OF syntax
+            Sequence(
+                "PARTITION",
+                "OF",
+                Ref("TableReferenceSegment"),
+                Bracketed(
+                    Delimited(
+                        Sequence(
+                            Ref("ColumnReferenceSegment"),
+                            Sequence("WITH", "OPTIONS", optional=True),
+                            AnyNumberOf(Ref("ColumnConstraintSegment")),
+                        ),
+                        Ref("TableConstraintSegment"),
+                        delimiter=Ref("CommaSegment"),
+                    ),
+                    optional=True,
+                ),
+                OneOf(
+                    Sequence("FOR", "VALUES", Ref("PartitionBoundSpecSegment")),
+                    "DEFAULT",
+                ),
+            ),
+        ),
+        AnyNumberOf(
+            Sequence(
+                "PARTITION",
+                "BY",
+                OneOf("RANGE", "LIST", "HASH"),
+                Bracketed(
+                    AnyNumberOf(
+                        Delimited(
+                            Sequence(
+                                OneOf(
+                                    Ref("ColumnReferenceSegment"),
+                                    Ref("FunctionSegment"),
+                                ),
+                                AnyNumberOf(
+                                    Sequence(
+                                        "COLLATE",
+                                        Ref("QuotedLiteralSegment"),
+                                        optional=True,
+                                    ),
+                                    Ref("ParameterNameSegment", optional=True),
+                                ),
+                            ),
+                            delimiter=Ref("CommaSegment"),
+                        )
+                    )
+                ),
+            ),
+            Sequence("USING", Ref("ParameterNameSegment")),
+            OneOf(
+                Sequence(
+                    "WITH",
+                    Bracketed(
+                        AnyNumberOf(
+                            Sequence(
+                                Ref("ParameterNameSegment"),
+                                Sequence(
+                                    Ref("EqualsSegment"),
+                                    Ref("LiteralGrammar"),
+                                    optional=True,
+                                ),
+                            )
+                        )
+                    ),
+                ),
+                Sequence("WITHOUT", "OIDS"),
+            ),
+            Sequence(
+                "ON",
+                "COMMIT",
+                OneOf(Sequence("PRESERVE", "ROWS"), Sequence("DELETE", "ROWS"), "DROP"),
+            ),
+            Sequence("TABLESPACE", Ref("TableReferenceSegment")),
+        ),
+    )
+
+
+@postgres_dialect.segment(replace=True)
 class AlterTableStatementSegment(BaseSegment):
     """An `ALTER TABLE` statement.
 
@@ -451,7 +584,7 @@ class AlterTableActionSegment(BaseSegment):
             Ref("ColumnReferenceSegment"),
             Ref("DatatypeSegment"),
             Sequence("COLLATE", Ref("QuotedLiteralSegment"), optional=True),
-            Ref("ColumnOptionSegment", optional=True),
+            AnyNumberOf(Ref("ColumnConstraintSegment")),
         ),
         Sequence(
             "DROP",
@@ -506,7 +639,7 @@ class AlterTableActionSegment(BaseSegment):
                             Sequence(
                                 Ref("ParameterNameSegment"),
                                 Ref("EqualsSegment"),
-                                Ref("LiteralGrammer"),
+                                Ref("LiteralGrammar"),
                             ),
                             delimiter=Ref("CommaSegment"),
                         )
@@ -527,10 +660,10 @@ class AlterTableActionSegment(BaseSegment):
         ),
         Sequence(
             "ADD",
-            Ref("TableConstraintSegment"),  # TODO
+            Ref("TableConstraintSegment"),
             Sequence("NOT", "VALID", optional=True),
         ),
-        Sequence("ADD", Ref("TableConstraintUsingIndexSegment")),  # TODO
+        Sequence("ADD", Ref("TableConstraintUsingIndexSegment")),
         Sequence(
             "ALTER",
             "CONSTRAINT",
@@ -620,8 +753,33 @@ class AlterTableActionSegment(BaseSegment):
     )
 
 
-@postgres_dialect.segment(replace=True)
-class ColumnOptionSegment(BaseSegment):
+@postgres_dialect.segment()
+class LikeOptionSegment(BaseSegment):
+    """Like Option Segment.
+
+    As specified in https://www.postgresql.org/docs/13/sql-createtable.html
+    """
+
+    type = "like_option"
+
+    match_grammar = Sequence(
+        OneOf("INCLUDING", "EXCLUDING"),
+        OneOf(
+            "COMMENTS",
+            "CONSTRAINTS",
+            "DEFAULTS",
+            "GENERATED",
+            "IDENTITY",
+            "INDEXES",
+            "STATISTICS",
+            "STORAGE",
+            "ALL",
+        ),
+    )
+
+
+@postgres_dialect.segment()
+class ColumnConstraintSegment(BaseSegment):
     """A column option; each CREATE TABLE column can have 0 or more.
 
     This matches the definition in https://www.postgresql.org/docs/13/sql-altertable.html
@@ -640,7 +798,7 @@ class ColumnOptionSegment(BaseSegment):
             Sequence(Ref.keyword("NOT", optional=True), "NULL"),  # NOT NULL or NULL
             Sequence(
                 "CHECK",
-                Ref("ExpressionSegment"),
+                Bracketed(Ref("ExpressionSegment")),
                 Sequence("NO", "INHERIT", optional=True),
             ),
             Sequence(  # DEFAULT <value>
@@ -648,6 +806,8 @@ class ColumnOptionSegment(BaseSegment):
                 OneOf(
                     Ref("LiteralGrammar"),
                     Ref("FunctionSegment"),
+                    Ref("BareFunctionSegment"),
+                    Ref("ExpressionSegment")
                     # ?? Ref('IntervalExpressionSegment')
                 ),
             ),
@@ -727,13 +887,17 @@ class TableConstraintSegment(BaseSegment):
     """
 
     type = "table_constraint_definition"
-    # Later add support for CHECK constraint, others?
-    # e.g. CONSTRAINT constraint_1 PRIMARY KEY(column_1)
+
     match_grammar = Sequence(
         Sequence(  # [ CONSTRAINT <Constraint name> ]
             "CONSTRAINT", Ref("ObjectReferenceSegment"), optional=True
         ),
         OneOf(
+            Sequence(
+                "CHECK",
+                Bracketed(Ref("ExpressionSegment")),
+                Sequence("NO", "INHERIT", optional=True),
+            ),
             Sequence(  # UNIQUE ( column_name [, ... ] )
                 "UNIQUE",
                 Ref("BracketedColumnReferenceListGrammar"),
@@ -747,7 +911,7 @@ class TableConstraintSegment(BaseSegment):
             ),
             Sequence(
                 "EXCLUDE",
-                Sequence("USING", Ref("ParameterNameSegment"), optional=True),
+                Sequence("USING", Ref("FunctionSegment"), optional=True),
                 Bracketed(
                     Delimited(
                         Sequence(
@@ -826,14 +990,16 @@ class IndexParametersSegment(BaseSegment):
                     Sequence(
                         Ref("ParameterNameSegment"),
                         Ref("EqualsSegment"),
-                        Ref("LiteralGrammer"),
+                        Ref("LiteralGrammar"),
                     ),
                     delimiter=Ref("CommaSegment"),
                 )
             ),
             optional=True,
         ),
-        Sequence("USING", "INDEX", "TABLESPACE", Ref("ParameterNameSegment")),
+        Sequence(
+            "USING", "INDEX", "TABLESPACE", Ref("ParameterNameSegment"), optional=True
+        ),
     )
 
 
@@ -865,3 +1031,291 @@ class ExcludeElementSegment(BaseSegment):
         OneOf("ASC", "DESC", optional=True),
         Sequence("NULLS", OneOf("FIRST", "LAST"), optional=True),
     )
+
+
+@postgres_dialect.segment()
+class AlterDefaultPrivilegesStatementSegment(BaseSegment):
+    """`ALTER DEFAULT PRIVILEGES` statement.
+
+    ```
+    ALTER DEFAULT PRIVILEGES
+    [ FOR { ROLE | USER } target_role [, ...] ]
+    [ IN SCHEMA schema_name [, ...] ]
+    abbreviated_grant_or_revoke
+    ```
+
+    https://www.postgresql.org/docs/13/sql-alterdefaultprivileges.html
+    """
+
+    type = "alter_default_privileges_statement"
+    match_grammar = Sequence(
+        "ALTER",
+        "DEFAULT",
+        "PRIVILEGES",
+        Sequence(
+            "FOR",
+            OneOf("ROLE", "USER"),
+            Delimited(
+                Ref("ObjectReferenceSegment"),
+                terminator=OneOf("IN", "GRANT", "REVOKE"),
+            ),
+            optional=True,
+        ),
+        Sequence(
+            "IN",
+            "SCHEMA",
+            Delimited(
+                Ref("SchemaReferenceSegment"),
+                terminator=OneOf("GRANT", "REVOKE"),
+            ),
+            optional=True,
+        ),
+        OneOf(
+            Ref("AlterDefaultPrivilegesGrantSegment"),
+            Ref("AlterDefaultPrivilegesRevokeSegment"),
+        ),
+    )
+
+
+@postgres_dialect.segment()
+class AlterDefaultPrivilegesObjectPrivilegesSegment(BaseSegment):
+    """`ALTER DEFAULT PRIVILEGES` object privileges.
+
+    https://www.postgresql.org/docs/13/sql-alterdefaultprivileges.html
+    """
+
+    type = "alter_default_privileges_object_privilege"
+    match_grammar = OneOf(
+        Sequence("ALL", Ref.keyword("PRIVILEGES", optional=True)),
+        Delimited(
+            "CREATE",
+            "DELETE",
+            "EXECUTE",
+            "INSERT",
+            "REFERENCES",
+            "SELECT",
+            "TRIGGER",
+            "TRUNCATE",
+            "UPDATE",
+            "USAGE",
+            terminator="ON",
+        ),
+    )
+
+
+@postgres_dialect.segment()
+class AlterDefaultPrivilegesSchemaObjectsSegment(BaseSegment):
+    """`ALTER DEFAULT PRIVILEGES` schema object types.
+
+    https://www.postgresql.org/docs/13/sql-alterdefaultprivileges.html
+    """
+
+    type = "alter_default_privileges_schema_object"
+    match_grammar = OneOf(
+        "TABLES",
+        "FUNCTIONS",
+        "ROUTINES",
+        "SEQUENCES",
+        "TYPES",
+        "SCHEMAS",
+    )
+
+
+@postgres_dialect.segment()
+class AlterDefaultPrivilegesToFromRolesSegment(BaseSegment):
+    """The segment after `TO` / `FROM`  in `ALTER DEFAULT PRIVILEGES`.
+
+    `{ [ GROUP ] role_name | PUBLIC } [, ...]`
+
+    https://www.postgresql.org/docs/13/sql-alterdefaultprivileges.html
+    """
+
+    type = "alter_default_privileges_to_from_roles"
+    match_grammar = OneOf(
+        Sequence(
+            Ref.keyword("GROUP", optional=True),
+            Ref("ObjectReferenceSegment"),
+        ),
+        "PUBLIC",
+    )
+
+
+@postgres_dialect.segment()
+class AlterDefaultPrivilegesGrantSegment(BaseSegment):
+    """`GRANT` for `ALTER DEFAULT PRIVILEGES`.
+
+    https://www.postgresql.org/docs/13/sql-alterdefaultprivileges.html
+    """
+
+    type = "alter_default_privileges_grant"
+    match_grammar = Sequence(
+        "GRANT",
+        Ref("AlterDefaultPrivilegesObjectPrivilegesSegment"),
+        "ON",
+        Ref("AlterDefaultPrivilegesSchemaObjectsSegment"),
+        "TO",
+        Delimited(
+            Ref("AlterDefaultPrivilegesToFromRolesSegment"),
+            terminator="WITH",
+        ),
+        Sequence("WITH", "GRANT", "OPTION", optional=True),
+    )
+
+
+@postgres_dialect.segment()
+class AlterDefaultPrivilegesRevokeSegment(BaseSegment):
+    """`REVOKE` for `ALTER DEFAULT PRIVILEGES`.
+
+    https://www.postgresql.org/docs/13/sql-alterdefaultprivileges.html
+    """
+
+    type = "alter_default_privileges_revoke"
+    match_grammar = Sequence(
+        "REVOKE",
+        Sequence("GRANT", "OPTION", "FOR", optional=True),
+        Ref("AlterDefaultPrivilegesObjectPrivilegesSegment"),
+        "ON",
+        Ref("AlterDefaultPrivilegesSchemaObjectsSegment"),
+        "FROM",
+        Delimited(
+            Ref("AlterDefaultPrivilegesToFromRolesSegment"),
+            terminator=OneOf("RESTRICT", "CASCADE"),
+        ),
+        OneOf("RESTRICT", "CASCADE", optional=True),
+    )
+
+
+@postgres_dialect.segment()
+class CommentOnStatementSegment(BaseSegment):
+    """`COMMENT ON` statement.
+
+    https://www.postgresql.org/docs/13/sql-comment.html
+    """
+
+    type = "comment_on_statement"
+
+    match_grammar = StartsWith(Sequence("COMMENT", "ON"))
+    parse_grammar = Sequence(
+        "COMMENT",
+        "ON",
+        Sequence(
+            OneOf(
+                Sequence(
+                    OneOf(
+                        "TABLE",
+                        # TODO: Create a ViewReferenceSegment
+                        "VIEW",
+                    ),
+                    Ref("TableReferenceSegment"),
+                ),
+                Sequence(
+                    "CAST",
+                    Bracketed(
+                        Sequence(
+                            Ref("ObjectReferenceSegment"),
+                            "AS",
+                            Ref("ObjectReferenceSegment"),
+                        ),
+                    ),
+                ),
+                Sequence(
+                    "COLUMN",
+                    # TODO: Does this correctly emit a Table Reference?
+                    Ref("ColumnReferenceSegment"),
+                ),
+                Sequence(
+                    "CONSTRAINT",
+                    Ref("ObjectReferenceSegment"),
+                    Sequence(
+                        "ON",
+                        Ref.keyword("DOMAIN", optional=True),
+                        Ref("ObjectReferenceSegment"),
+                    ),
+                ),
+                Sequence(
+                    "DATABASE",
+                    Ref("DatabaseReferenceSegment"),
+                ),
+                Sequence(
+                    "EXTENSION",
+                    Ref("ExtensionReferenceSegment"),
+                ),
+                Sequence(
+                    "FUNCTION",
+                    Ref("FunctionNameSegment"),
+                    Ref("FunctionParameterListGrammar"),
+                ),
+                Sequence(
+                    "INDEX",
+                    Ref("IndexReferenceSegment"),
+                ),
+                Sequence(
+                    "SCHEMA",
+                    Ref("SchemaReferenceSegment"),
+                ),
+                # TODO: Split out individual items if they have references
+                Sequence(
+                    OneOf(
+                        "COLLATION",
+                        "CONVERSION",
+                        "DOMAIN",
+                        "LANGUAGE",
+                        "POLICY",
+                        "PUBLICATION",
+                        "ROLE",
+                        "RULE",
+                        "SEQUENCE",
+                        "SERVER",
+                        "STATISTICS",
+                        "SUBSCRIPTION",
+                        "TABLESPACE",
+                        "TRIGGER",
+                        "TYPE",
+                        Sequence("ACCESS", "METHOD"),
+                        Sequence("EVENT", "TRIGGER"),
+                        Sequence("FOREIGN", "DATA", "WRAPPER"),
+                        Sequence("FOREIGN", "TABLE"),
+                        Sequence("MATERIALIZED", "VIEW"),
+                        Sequence("TEXT", "SEARCH", "CONFIGURATION"),
+                        Sequence("TEXT", "SEARCH", "DICTIONARY"),
+                        Sequence("TEXT", "SEARCH", "PARSER"),
+                        Sequence("TEXT", "SEARCH", "TEMPLATE"),
+                    ),
+                    Ref("ObjectReferenceSegment"),
+                    Sequence("ON", Ref("ObjectReferenceSegment"), optional=True),
+                ),
+                Sequence(
+                    OneOf(
+                        "AGGREGATE",
+                        "PROCEDURE",
+                        "ROUTINE",
+                    ),
+                    Ref("ObjectReferenceSegment"),
+                    Bracketed(
+                        Sequence(
+                            # TODO: Is this too permissive?
+                            Anything(),
+                        ),
+                    ),
+                ),
+            ),
+            Sequence("IS", OneOf(Ref("QuotedLiteralSegment"), "NULL")),
+        ),
+    )
+
+
+# Adding PostgreSQL specific statements
+@postgres_dialect.segment(replace=True)
+class StatementSegment(BaseSegment):
+    """A generic segment, to any of its child subsegments."""
+
+    type = "statement"
+
+    parse_grammar = ansi_dialect.get_segment("StatementSegment").parse_grammar.copy(
+        insert=[
+            Ref("AlterDefaultPrivilegesStatementSegment"),
+            Ref("CommentOnStatementSegment"),
+        ],
+    )
+
+    match_grammar = ansi_dialect.get_segment("StatementSegment").match_grammar.copy()
