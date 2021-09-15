@@ -198,5 +198,6 @@ UNRESERVED_KEYWORDS = [
     "ROLE",
     "SWITCH",
     "TRUNCATE_TARGET",
-    "TYPE"
+    "TYPE",
+    "GO"
 ]
