@@ -301,6 +301,82 @@ class ObjectReferenceSegment(BaseSegment):
         allow_gaps=False,
     )
 
+    class ObjectReferencePart(NamedTuple):
+        """Details about a table alias."""
+
+        part: str  # Name of the part
+        # Segment(s) comprising the part. Usuaully just one segment, but could
+        # be multiple in dialects (e.g. BigQuery) that support unusual
+        # characters in names (e.g. "-")
+        segments: List[BaseSegment]
+
+    @classmethod
+    def _iter_reference_parts(cls, elem) -> Generator[ObjectReferencePart, None, None]:
+        """Extract the elements of a reference and yield."""
+        # trim on quotes and split out any dots.
+        for part in elem.raw_trimmed().split("."):
+            yield cls.ObjectReferencePart(part, [elem])
+
+    def iter_raw_references(self) -> Generator[ObjectReferencePart, None, None]:
+        """Generate a list of reference strings and elements.
+
+        Each reference is an ObjectReferencePart. If some are split, then a
+        segment may appear twice, but the substring will only appear once.
+        """
+        # Extract the references from those identifiers (because some may be quoted)
+        for elem in self.recursive_crawl("identifier"):
+            yield from self._iter_reference_parts(elem)
+
+    def is_qualified(self):
+        """Return if there is more than one element to the reference."""
+        return len(list(self.iter_raw_references())) > 1
+
+    def qualification(self):
+        """Return the qualification type of this reference."""
+        return "qualified" if self.is_qualified() else "unqualified"
+
+    class ObjectReferenceLevel(Enum):
+        """Labels for the "levels" of a reference.
+
+        Note: Since SQLFluff does not have access to database catalog
+        information, interpreting references will often be ambiguous.
+        Typical example: The first part *may* refer to a schema, but that is
+        almost always optional if referring to an object in some default or
+        currently "active" schema. For this reason, use of this enum is optional
+        and intended mainly to clarify the intent of the code -- no guarantees!
+        Additionally, the terminology may vary by dialect, e.g. in BigQuery,
+        "project" would be a more accurate term than "schema".
+        """
+
+        OBJECT = 1
+        TABLE = 2
+        SCHEMA = 3
+
+    def extract_possible_references(
+        self, level: Union[ObjectReferenceLevel, int]
+    ) -> List[ObjectReferencePart]:
+        """Extract possible references of a given level.
+
+        "level" may be (but is not required to be) a value from the
+        ObjectReferenceLevel enum defined above.
+
+        NOTE: The base implementation here returns at most one part, but
+        dialects such as BigQuery that support nesting (e.g. STRUCT) may return
+        multiple reference parts.
+        """
+        level = self._level_to_int(level)
+        refs = list(self.iter_raw_references())
+        if len(refs) >= level:
+            return [refs[-level]]
+        return []
+
+    @staticmethod
+    def _level_to_int(level: Union[ObjectReferenceLevel, int]) -> int:
+        # If it's an ObjectReferenceLevel, get the value. Otherwise, assume it's
+        # an int.
+        level = getattr(level, "value", level)
+        assert isinstance(level, int)
+        return level
 
 @tsql_dialect.segment()
 class GoStatementSegment(BaseSegment):
@@ -535,84 +611,6 @@ class TransactionStatementSegment(BaseSegment):
         OneOf("TRANSACTION", optional=True),
         Sequence("WITH","MARK", Ref("SingleIdentifierGrammar"), optional=True),
     )
-
-
-    class ObjectReferencePart(NamedTuple):
-        """Details about a table alias."""
-
-        part: str  # Name of the part
-        # Segment(s) comprising the part. Usuaully just one segment, but could
-        # be multiple in dialects (e.g. BigQuery) that support unusual
-        # characters in names (e.g. "-")
-        segments: List[BaseSegment]
-
-    @classmethod
-    def _iter_reference_parts(cls, elem) -> Generator[ObjectReferencePart, None, None]:
-        """Extract the elements of a reference and yield."""
-        # trim on quotes and split out any dots.
-        for part in elem.raw_trimmed().split("."):
-            yield cls.ObjectReferencePart(part, [elem])
-
-    def iter_raw_references(self) -> Generator[ObjectReferencePart, None, None]:
-        """Generate a list of reference strings and elements.
-
-        Each reference is an ObjectReferencePart. If some are split, then a
-        segment may appear twice, but the substring will only appear once.
-        """
-        # Extract the references from those identifiers (because some may be quoted)
-        for elem in self.recursive_crawl("identifier"):
-            yield from self._iter_reference_parts(elem)
-
-    def is_qualified(self):
-        """Return if there is more than one element to the reference."""
-        return len(list(self.iter_raw_references())) > 1
-
-    def qualification(self):
-        """Return the qualification type of this reference."""
-        return "qualified" if self.is_qualified() else "unqualified"
-
-    class ObjectReferenceLevel(Enum):
-        """Labels for the "levels" of a reference.
-
-        Note: Since SQLFluff does not have access to database catalog
-        information, interpreting references will often be ambiguous.
-        Typical example: The first part *may* refer to a schema, but that is
-        almost always optional if referring to an object in some default or
-        currently "active" schema. For this reason, use of this enum is optional
-        and intended mainly to clarify the intent of the code -- no guarantees!
-        Additionally, the terminology may vary by dialect, e.g. in BigQuery,
-        "project" would be a more accurate term than "schema".
-        """
-
-        OBJECT = 1
-        TABLE = 2
-        SCHEMA = 3
-
-    def extract_possible_references(
-        self, level: Union[ObjectReferenceLevel, int]
-    ) -> List[ObjectReferencePart]:
-        """Extract possible references of a given level.
-
-        "level" may be (but is not required to be) a value from the
-        ObjectReferenceLevel enum defined above.
-
-        NOTE: The base implementation here returns at most one part, but
-        dialects such as BigQuery that support nesting (e.g. STRUCT) may return
-        multiple reference parts.
-        """
-        level = self._level_to_int(level)
-        refs = list(self.iter_raw_references())
-        if len(refs) >= level:
-            return [refs[-level]]
-        return []
-
-    @staticmethod
-    def _level_to_int(level: Union[ObjectReferenceLevel, int]) -> int:
-        # If it's an ObjectReferenceLevel, get the value. Otherwise, assume it's
-        # an int.
-        level = getattr(level, "value", level)
-        assert isinstance(level, int)
-        return level
 
 
 # Need to include this to reset ObjectReferenceSegment reference
