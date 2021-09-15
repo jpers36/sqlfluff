@@ -2,6 +2,8 @@
 
 https://docs.microsoft.com/en-us/sql/t-sql/language-elements/language-elements-transact-sql
 """
+from enum import Enum
+from typing import Generator, List, NamedTuple, Union
 
 from sqlfluff.core.parser import (
     Matchable,
@@ -32,9 +34,11 @@ from sqlfluff.core.parser import (
    
     RegexParser,
     Conditional,
+    NamedParser,
 )
 
 from sqlfluff.core.dialects import load_raw_dialect
+from sqlfluff.core.dialects.common import AliasInfo
 from sqlfluff.dialects.tsql_keywords import RESERVED_KEYWORDS
 from sqlfluff.dialects.tsql_keywords import UNRESERVED_KEYWORDS
 
