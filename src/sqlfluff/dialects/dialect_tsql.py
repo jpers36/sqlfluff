@@ -78,7 +78,8 @@ tsql_dialect.insert_lexer_matchers(
             "square_quote",
             r"\[([a-zA-Z][^\[\]]*)*\]",
             CodeSegment,
-        ),    ],
+        ),
+    ],
     before="back_quote",
 )
 
@@ -388,6 +389,8 @@ class GoStatementSegment(BaseSegment):
 
     type = "go_statement"
     match_grammar = Sequence("GO")
+
+
 @tsql_dialect.segment(replace=True)
 class DatatypeSegment(BaseSegment):
     """A data type segment.

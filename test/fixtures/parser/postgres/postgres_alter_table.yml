@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: 1e62b5bb94da056f8cd1abd3cdd2e1a340149013cae07514bf5db2a1e504a4df
+_hash: dcfa7d689c0b44df6919c9da2f574211959f343f126a1b38763f815f75543abc
 file:
 - statement:
     alter_table_statement:
@@ -11,7 +11,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: ADD
       - keyword: COLUMN
       - column_reference:
@@ -30,17 +30,18 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: measurements
-    - base:
+    - alter_table_action_segment:
       - keyword: ADD
       - keyword: COLUMN
       - column_reference:
           identifier: mtime
       - data_type:
-        - keyword: timestamp
-        - keyword: with
-        - keyword: time
-        - keyword: zone
-      - column_constraint:
+          datetime_type_identifier:
+          - keyword: timestamp
+          - keyword: with
+          - keyword: time
+          - keyword: zone
+      - column_constraint_segment:
           keyword: DEFAULT
           function:
             function_name:
@@ -55,7 +56,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: transactions
-    - base:
+    - alter_table_action_segment:
       - keyword: ADD
       - keyword: COLUMN
       - column_reference:
@@ -67,11 +68,11 @@ file:
             expression:
               literal: '30'
             end_bracket: )
-      - column_constraint:
+      - column_constraint_segment:
           keyword: DEFAULT
           literal: "'old'"
     - comma: ','
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -87,7 +88,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: DROP
       - keyword: COLUMN
       - column_reference:
@@ -100,7 +101,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -114,7 +115,7 @@ file:
               literal: '80'
             end_bracket: )
     - comma: ','
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -134,7 +135,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: foo
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -143,24 +144,28 @@ file:
       - keyword: DATA
       - keyword: TYPE
       - data_type:
-        - keyword: timestamp
-        - keyword: with
-        - keyword: time
-        - keyword: zone
-      - keyword: USING
-      - expression:
-        - data_type:
+          datetime_type_identifier:
           - keyword: timestamp
           - keyword: with
           - keyword: time
           - keyword: zone
-        - literal: "'epoch'"
+      - keyword: USING
+      - expression:
+        - datetime_literal:
+            datetime_type_identifier:
+            - keyword: timestamp
+            - keyword: with
+            - keyword: time
+            - keyword: zone
+            literal: "'epoch'"
         - binary_operator: +
         - column_reference:
             identifier: foo_timestamp
         - binary_operator: '*'
-        - keyword: interval
-        - literal: "'1 second'"
+        - datetime_literal:
+            datetime_type_identifier:
+              keyword: interval
+            literal: "'1 second'"
 - statement_terminator: ;
 - statement:
     alter_table_statement:
@@ -168,7 +173,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: foo
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -176,29 +181,34 @@ file:
       - keyword: DROP
       - keyword: DEFAULT
     - comma: ','
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
           identifier: foo_timestamp
       - keyword: TYPE
       - data_type:
-        - keyword: timestamp
-        - keyword: with
-        - keyword: time
-        - keyword: zone
+          datetime_type_identifier:
+          - keyword: timestamp
+          - keyword: with
+          - keyword: time
+          - keyword: zone
       - keyword: USING
       - expression:
-        - keyword: timestamp
-        - literal: "'epoch'"
+        - datetime_literal:
+            datetime_type_identifier:
+              keyword: timestamp
+            literal: "'epoch'"
         - binary_operator: +
         - column_reference:
             identifier: foo_timestamp
         - binary_operator: '*'
-        - keyword: interval
-        - literal: "'1 second'"
+        - datetime_literal:
+            datetime_type_identifier:
+              keyword: interval
+            literal: "'1 second'"
     - comma: ','
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -256,7 +266,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -271,7 +281,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: ALTER
       - keyword: COLUMN
       - column_reference:
@@ -286,9 +296,9 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
-        table_constraint_definition:
+        table_constraint_segment:
         - keyword: CONSTRAINT
         - object_reference:
             identifier: zipchk
@@ -315,9 +325,9 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
-        table_constraint_definition:
+        table_constraint_segment:
         - keyword: CONSTRAINT
         - object_reference:
             identifier: zipchk
@@ -346,7 +356,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: DROP
       - keyword: CONSTRAINT
       - parameter: zipchk
@@ -358,7 +368,7 @@ file:
     - keyword: ONLY
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: DROP
       - keyword: CONSTRAINT
       - parameter: zipchk
@@ -369,9 +379,9 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
-        table_constraint_definition:
+        table_constraint_segment:
         - keyword: CONSTRAINT
         - object_reference:
             identifier: distfk
@@ -397,9 +407,9 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: ADD
-      - table_constraint_definition:
+      - table_constraint_segment:
         - keyword: CONSTRAINT
         - object_reference:
             identifier: distfk
@@ -427,7 +437,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: VALIDATE
       - keyword: CONSTRAINT
       - parameter: distfk
@@ -438,9 +448,9 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
-        table_constraint_definition:
+        table_constraint_segment:
         - keyword: CONSTRAINT
         - object_reference:
             identifier: dist_id_zipcode_key
@@ -460,9 +470,9 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
-        table_constraint_definition:
+        table_constraint_segment:
         - keyword: PRIMARY
         - keyword: KEY
         - bracketed:
@@ -477,7 +487,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: SET
       - keyword: TABLESPACE
       - parameter: fasttablespace
@@ -501,12 +511,12 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: distributors
-    - base:
+    - alter_table_action_segment:
       - keyword: DROP
       - keyword: CONSTRAINT
       - parameter: distributors_pkey
     - comma: ','
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
         base:
         - keyword: CONSTRAINT
@@ -616,9 +626,9 @@ file:
       - identifier: landing
       - dot: .
       - identifier: workorderhistory
-    - base:
+    - alter_table_action_segment:
         keyword: ADD
-        table_constraint_definition:
+        table_constraint_segment:
         - keyword: CONSTRAINT
         - object_reference:
             identifier: workorder_id_foreign_key
@@ -646,7 +656,7 @@ file:
     - keyword: TABLE
     - table_reference:
         identifier: my_table
-    - base:
+    - alter_table_action_segment:
       - keyword: ADD
       - keyword: COLUMN
       - keyword: IF
@@ -665,8 +675,83 @@ file:
       - identifier: public
       - dot: .
       - identifier: obm_buildings
-    - base:
+    - alter_table_action_segment:
       - keyword: OWNER
       - keyword: to
       - parameter: postgres
+- statement_terminator: ;
+- statement:
+    alter_table_statement:
+    - keyword: ALTER
+    - keyword: TABLE
+    - table_reference:
+        identifier: distributors
+    - alter_table_action_segment:
+      - keyword: ALTER
+      - keyword: COLUMN
+      - column_reference:
+          identifier: street
+      - keyword: ADD
+      - keyword: GENERATED
+      - keyword: ALWAYS
+      - keyword: AS
+      - keyword: IDENTITY
+      - bracketed:
+        - start_bracket: (
+        - alter_sequence_options_segment:
+            keyword: INCREMENT
+            literal: '4'
+        - alter_sequence_options_segment:
+          - keyword: 'NO'
+          - keyword: MAXVALUE
+        - end_bracket: )
+- statement_terminator: ;
+- statement:
+    alter_table_statement:
+    - keyword: ALTER
+    - keyword: TABLE
+    - table_reference:
+        identifier: distributors
+    - alter_table_action_segment:
+      - keyword: ALTER
+      - keyword: COLUMN
+      - column_reference:
+          identifier: street
+      - keyword: SET
+      - alter_sequence_options_segment:
+        - keyword: RESTART
+        - keyword: WITH
+        - literal: '3'
+- statement_terminator: ;
+- statement:
+    alter_table_statement:
+    - keyword: ALTER
+    - keyword: TABLE
+    - table_reference:
+        identifier: distributors
+    - alter_table_action_segment:
+        keyword: ADD
+        column_reference:
+          identifier: my_column
+        data_type:
+          data_type_identifier: int
+        column_constraint_segment:
+        - keyword: GENERATED
+        - keyword: BY
+        - keyword: DEFAULT
+        - keyword: AS
+        - keyword: IDENTITY
+        - bracketed:
+          - start_bracket: (
+          - alter_sequence_options_segment:
+              keyword: CACHE
+              literal: '3'
+          - alter_sequence_options_segment:
+              keyword: MAXVALUE
+              literal: '63'
+          - alter_sequence_options_segment:
+            - keyword: OWNED
+            - keyword: BY
+            - keyword: NONE
+          - end_bracket: )
 - statement_terminator: ;
