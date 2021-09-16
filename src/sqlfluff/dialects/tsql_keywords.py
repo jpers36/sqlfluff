@@ -196,6 +196,7 @@ UNRESERVED_KEYWORDS = [
     "PARTITION",
     "PREDICT", # https://docs.microsoft.com/en-us/sql/t-sql/queries/predict-transact-sql?view=sql-server-ver15
     "ROLE",
+    "SEQUENCE", # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-sequence-transact-sql?view=sql-server-ver15
     "SWITCH",
     "TRUNCATE_TARGET",
     "TYPE",
