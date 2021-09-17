@@ -40,3 +40,6 @@ test-reports
 # Ignore conda environment.yml contributors might be using and direnv config
 environment.yml
 .envrc
+
+# Ignore byproducts of diffs
+*.orig
