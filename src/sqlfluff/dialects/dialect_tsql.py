@@ -984,6 +984,26 @@ class SetOperatorSegment(BaseSegment):
 
 
 @tsql_dialect.segment(replace=True)
+class WithCompoundStatementSegment(BaseSegment):
+    """A `SELECT` statement preceded by a selection of `WITH` clauses.
+
+    `WITH tab (col1,col2) AS (SELECT a,b FROM x)`
+    """
+
+    type = "with_compound_statement"
+    # match grammar
+    match_grammar = StartsWith("WITH")
+    parse_grammar = Sequence(
+        "WITH",
+        Delimited(
+            Ref("CTEDefinitionSegment"),
+            terminator=Ref.keyword("SELECT"),
+        ),
+        Ref("NonWithSelectableGrammar"),
+    )
+
+
+@tsql_dialect.segment(replace=True)
 class MLTableExpressionSegment(BaseSegment):
     """An ML table expression."""
     # https://docs.microsoft.com/en-us/sql/t-sql/queries/predict-transact-sql?view=sql-server-ver15
