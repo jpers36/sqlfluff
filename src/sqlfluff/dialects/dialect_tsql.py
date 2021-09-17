@@ -746,7 +746,10 @@ class ProcedureDefinitionGrammar(BaseSegment):
 
 @tsql_dialect.segment(replace=True)
 class IntervalExpressionSegment(BaseSegment):
-    """An interval expression segment."""
+    """An interval expression segment.
+
+    Not present in T-SQL.
+    """
 
     type = "interval_expression"
     match_grammar = Nothing()
@@ -756,7 +759,7 @@ class IntervalExpressionSegment(BaseSegment):
 class CreateExtensionStatementSegment(BaseSegment):
     """A `CREATE EXTENSION` statement.
 
-    https://www.postgresql.org/docs/9.1/sql-createextension.html
+    Not present in T-SQL.
     """
 
     type = "create_extension_statement"
@@ -765,15 +768,21 @@ class CreateExtensionStatementSegment(BaseSegment):
 
 @tsql_dialect.segment(replace=True)
 class CreateModelStatementSegment(BaseSegment):
-    """A BigQuery `CREATE MODEL` statement."""
+    """A BigQuery `CREATE MODEL` statement.
+
+    Not present in T-SQL.
+    """
 
     type = "create_model_statement"
     match_grammar = Nothing()
 
 
-@ansi_dialect.segment(replace=True)
+@tsql_dialect.segment(replace=True)
 class DropModelStatementSegment(BaseSegment):
-    """A `DROP MODEL` statement."""
+    """A `DROP MODEL` statement.
+
+    Not present in T-SQL.
+    """
 
     type = "drop_MODELstatement"
     match_grammar = Nothing()
@@ -788,10 +797,14 @@ class LimitClauseSegment(BaseSegment):
 
 @tsql_dialect.segment(replace=True)
 class OverlapsClauseSegment(BaseSegment):
-    """An `OVERLAPS` clause like in `SELECT."""
+    """An `OVERLAPS` clause like in `SELECT.
+
+    Not present in T-SQL.
+    """
 
     type = "overlaps_clause"
     match_grammar = Nothing()
+
 
 @tsql_dialect.segment(replace=True)
 class NamedWindowSegment(BaseSegment):
