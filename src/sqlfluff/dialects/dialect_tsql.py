@@ -26,6 +26,8 @@ from sqlfluff.core.parser import (
     StringParser,
     SymbolSegment,
     SegmentGenerator,
+    NewlineSegment,
+    WhitespaceSegment,
 )
 
 from sqlfluff.core.dialects import load_raw_dialect
@@ -75,6 +77,23 @@ tsql_dialect.patch_lexer_matchers(
             r"(--)[^\n]*",
             CommentSegment,
             segment_kwargs={"trim_start": ("--")},
+        ),
+        # Patching block comments to allow for nesting
+        # https://docs.microsoft.com/en-us/sql/t-sql/language-elements/slash-star-comment-transact-sql?view=sql-server-ver15#remarks
+        RegexLexer(
+            "block_comment",
+            r"\/\*((?>[^(\/\*)(\*\/)]+)|(?R))*\*\/",
+            CommentSegment,
+            subdivider=RegexLexer(
+                "newline",
+                r"\r\n|\n",
+                NewlineSegment,
+            ),
+            trim_post_subdivide=RegexLexer(
+                "whitespace",
+                r"[\t ]+",
+                WhitespaceSegment,
+            ),
         ),
         # Patching to add !<, !>
         RegexLexer("greater_than_or_equal", ">=|!<", CodeSegment),
