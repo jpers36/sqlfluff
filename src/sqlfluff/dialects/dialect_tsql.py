@@ -530,6 +530,54 @@ class ObjectReferenceSegment(BaseSegment):
 
 
 @tsql_dialect.segment(replace=True)
+class ColumnConstraintSegment(BaseSegment):
+    """A column option; each CREATE TABLE column can have 0 or more.
+
+    Overriding ANSI to include TSQL collation.
+    https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver15#full-syntax
+    """
+
+    type = "column_constraint_segment"
+    match_grammar = Sequence(
+        Sequence(
+            "CONSTRAINT",
+            Ref("ObjectReferenceSegment"),  # Constraint name
+            optional=True,
+        ),
+        OneOf(
+            "FILESTREAM",
+            Sequence("COLLATE", Delimited(
+                Ref("BatchSegment"),
+                delimiter="_",
+                allow_gaps=True,
+                allow_trailing=True,
+            )),
+            Sequence(Ref.keyword("NOT", optional=True), "NULL"),  # NOT NULL or NULL
+            Sequence("CHECK", Bracketed(Ref("ExpressionSegment"))),
+            Sequence(  # DEFAULT <value>
+                "DEFAULT",
+                OneOf(
+                    Ref("LiteralGrammar"),
+                    Ref("FunctionSegment"),
+                    # ?? Ref('IntervalExpressionSegment')
+                ),
+            ),
+            Ref("PrimaryKeyGrammar"),
+            "UNIQUE",  # UNIQUE
+            "AUTO_INCREMENT",  # AUTO_INCREMENT (MySQL)
+            "UNSIGNED",  # UNSIGNED (MySQL)
+            Sequence(  # REFERENCES reftable [ ( refcolumn) ]
+                "REFERENCES",
+                Ref("ColumnReferenceSegment"),
+                # Foreign columns making up FOREIGN KEY constraint
+                Ref("BracketedColumnReferenceListGrammar", optional=True),
+            ),
+            Ref("CommentClauseSegment"),
+        ),
+    )
+
+
+@tsql_dialect.segment(replace=True)
 class TableReferenceSegment(ObjectReferenceSegment):
     """A reference to an table, CTE, subquery or alias.
 
