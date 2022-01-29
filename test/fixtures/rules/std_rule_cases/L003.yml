@@ -643,3 +643,20 @@ test_pass_tsql_declare_indent:
   configs:
     core:
       dialect: tsql
+
+test_pass_tsql_set_indent:
+  pass_str: |
+    SET @prv_qtr_1st_dt = CAST(@last_qtr_yr AS VARCHAR(4)) + '-' +
+        CAST(@last_qtr_first_mn AS VARCHAR(2)) + '-01'
+  configs:
+    core:
+      dialect: tsql
+
+test_pass_tsql_if_indent:
+  pass_str: |
+    IF 1 > 1 AND
+       2 < 2
+       SELECT 1;
+  configs:
+    core:
+      dialect: tsql

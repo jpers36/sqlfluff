@@ -1322,9 +1322,9 @@ class IfClauseSegment(BaseSegment):
     type = "if_clause"
 
     match_grammar = OneOf(
-        Sequence(Ref("IfNotExistsGrammar"), Ref("SelectStatementSegment")),
-        Sequence(Ref("IfExistsGrammar"), Ref("SelectStatementSegment")),
-        Sequence("IF", Ref("ExpressionSegment")),
+        Sequence(Ref("IfNotExistsGrammar"), Indent, Ref("SelectStatementSegment"), Dedent,),
+        Sequence(Ref("IfExistsGrammar"), Indent, Ref("SelectStatementSegment"), Dedent,),
+        Sequence("IF", Indent, Ref("ExpressionSegment"), Dedent,),
     )
 
 
@@ -1562,6 +1562,7 @@ class SetStatementSegment(BaseSegment):
     type = "set_segment"
     match_grammar = Sequence(
         "SET",
+        Indent,
         OneOf(
             Ref("ParameterNameSegment"),
             "DATEFIRST",
@@ -1622,6 +1623,7 @@ class SetStatementSegment(BaseSegment):
                 Ref("ExpressionSegment"),
             ),
         ),
+        Dedent,
         Ref("DelimiterSegment", optional=True),
     )
 
