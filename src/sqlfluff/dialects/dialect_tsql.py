@@ -1326,10 +1326,8 @@ class IfClauseSegment(BaseSegment):
 
     type = "if_clause"
 
-    match_grammar = OneOf(
-        Sequence(Ref("IfNotExistsGrammar"), Indent, Ref("SelectStatementSegment"), Dedent,),
-        Sequence(Ref("IfExistsGrammar"), Indent, Ref("SelectStatementSegment"), Dedent,),
-        Sequence("IF", Indent, Ref("ExpressionSegment"), Dedent,),
+    match_grammar = Sequence(
+        "IF", Indent, Ref("ExpressionSegment"), Dedent,
     )
 
 
