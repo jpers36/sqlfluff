@@ -1639,6 +1639,7 @@ ansi_dialect.add(
                     Ref("Expression_C_Grammar"),
                 ),
                 Sequence(
+                    Indent,
                     Ref.keyword("NOT", optional=True),
                     "BETWEEN",
                     # In a between expression, we're restricted to arithmetic operations
@@ -1660,6 +1661,7 @@ ansi_dialect.add(
                             Ref("Expression_C_Grammar"),
                         )
                     ),
+                    Dedent,
                 ),
             )
         ),

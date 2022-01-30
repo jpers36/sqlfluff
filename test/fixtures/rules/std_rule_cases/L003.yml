@@ -634,6 +634,13 @@ test_pass_ignore_templated_whitespace_4:
         {{ "      c2\n" }} AS other_id
     FROM my_table
 
+test_pass_between:
+  pass_str: |
+    SELECT 1
+    WHERE 1 = 1
+        AND 2 BETWEEN 3
+            AND 4
+
 test_pass_tsql_declare_indent:
   pass_str: |
     DECLARE @prv_qtr_1st_dt DATETIME,
@@ -657,6 +664,15 @@ test_pass_tsql_if_indent:
     IF 1 > 1 AND
        2 < 2
        SELECT 1;
+  configs:
+    core:
+      dialect: tsql
+
+test_pass_tsql_update_indent:
+  pass_str: |
+    update Extracts.itt_parm_base
+        set DateF = convert(varchar, @from_date, 112),
+            DateT = convert(varchar, @to_date, 112)
   configs:
     core:
       dialect: tsql
