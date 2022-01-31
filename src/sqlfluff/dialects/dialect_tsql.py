@@ -1327,7 +1327,7 @@ class IfClauseSegment(BaseSegment):
     type = "if_clause"
 
     match_grammar = Sequence(
-        "IF", Indent, Ref("ExpressionSegment"), Dedent,
+        "IF", Ref("ExpressionSegment"), 
     )
 
 
